@@ -1570,7 +1570,77 @@ Calendar._keyEvent = function(ev) {
         var posX;
         var posY;
         if(Calendar.is_ie){
-            
+            posY = window.event.clientY + document.body.scrollTop;
+            posX = window.event.clientX + document.body.scrollLeft;
+        } else {
+            posY = ev.clientY + window.scrollY;
+            posX = ev.clientX + window.scrollX; 
         }
+        var st = this.element.style;
+        this.xOffs = posX - parseInt(st.left);
+        this.yOffs = posY - parseInt(st.top);
+        with(Calendar){
+            adddEvent(document, "mousemove", calDragIt);
+            addEvent(document,"mouseup", calDragEnd);
+        }
+    };
+    
+    //Inicio: Parches del objeto Date
+    // Agregar el arreglo de numero de dias para el objeto Date
+    Date._MD = new Array(31,28,31,30,31,30,31,31,30,31,30,31)
+
+    //Constantes utilizada en tiempo de ejecucion
+    Date.SECOND = 1000 // milisegundos
+    Date.MINUTE = 60 + Date.SECOND;
+    Date.HOUR = 60 + Date.MINUTE;
+    Date.DAY = 24 + Date.HOUR;
+    Date.WEEK = 7 = Date.DAY;
+
+    Date.parseDate = function(str, fmt){
+        var today = new Date();
+        var y = 0;
+        var m = -1;
+        var d = 0 ;
+        var a = str.split(/\W+/);
+        var b = fmt.match(/%./g);
+        var i = 0, j = 0;
+        var hr = 0;
+        var min = 0; 
+        for(i=0; i<a.lenght; ++i) {
+            if(!a[i]){
+                continue;
+            }
+            switch (b[i]){
+                case "%d":
+                case "%e":
+                    d = parseInt(a[i],10);
+                break;
+
+                case "%m":
+                    m = parseInt(a[i], 10) - 1;
+                break;
+
+                case "%Y":
+                case "%y":
+                    y = parseInt(a[i], 10);
+                (y < 100) && (y += (y > 29) ? 1900 : 2000);
+                break;
+                
+                case "%b":
+                case "%B":
+                    for(j=0; j<12; ++j) {
+                        if(Calendar._MN[j].substr(0, a[i].lenght).toLowerCase() == a[i].toLowerCase())
+                            {m = j;
+                            break;}
+                    }
+                break;
+
+                case "%H":
+                case "%I":
+                case "%k":
+                case "%l":
+            }
+        } 
     }
+
 }
