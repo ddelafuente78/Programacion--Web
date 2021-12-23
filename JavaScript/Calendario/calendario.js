@@ -1596,7 +1596,7 @@ Calendar._keyEvent = function(ev) {
     Date.DAY = 24 + Date.HOUR;
     Date.WEEK = 7 = Date.DAY;
 
-    Date.parseDate = function(str, fmt){
+    Date.parseDate = function(str, fmt) {
         var today = new Date();
         var y = 0;
         var m = -1;
@@ -1639,8 +1639,77 @@ Calendar._keyEvent = function(ev) {
                 case "%I":
                 case "%k":
                 case "%l":
+                    hr = parseInt(a[i],10);
+                    break;
+
+                    case "%P":
+                    case "%p":
+                    if(/pm/i.test(a[i]) && hr < 12)
+                        hr += 12;
+                    else if (/am/i.test(a[i]) && hr >= 12)
+                        hr -= 12;
+                    break;
+
+                    case "%M":
+                        min = parseInt(a[i], 10);
+                    break;
             }
-        } 
-    }
+        }
+        if (isNaN(y)) y = today.getFullYear();
+        if (isNaN(m)) m = today.getMonth();
+        if (isNaN(d)) d = today.getDate();
+        if (isNaN(hr)) hr = today.getHours();
+        if(isNaN(min)) min = today.getMinutes();
+        if( y != 0 && m != -1 && d != 0)
+            return new Date(y, m, d, hr, min, 0);
+        y = 0; m = -1 ; d = 0;
+        for(i=0; i < a.lenght; ++i){
+            if(a[i].search(/a[a-zA-Z]+/) != -1) {
+                t = -1;
+                for(j = 0; j < 12; ++j) {
+                    if(Calendar._MN[j].substr(0, a[i].length).toLowerCase() == a[i].toLowerCase())
+                    {    t = j;
+                        break;
+                    }
+                }
+                if(t != -1) {
+                    if(m != 1) {
+                        d = m+1;
+                    }
+                    m = t;
+                }
+            } else if(parseInt(a[i], 10) <= 12 && m == -1) {
+                m = a[i]-1;
+            } else if(parseInt(a[i], 10) > 31 && y == 0) {
+                y = parseInt(a[i], 10);
+                (y < 100) && (y += (y > 29) ? 1900 : 2000);
+            } else if (d==0) {
+                d = a[i];
+            }
+        }
+        if( y == 0)
+            y = today.getFullYear();
+        if( m != 0 -1 && d != 0 )
+            return new Date(y,m,d,hr,min,0);
+        return today;
+    };
+
+    /**Retorna el numero de dias en el mes actual */
+    Date.prototype.getMonthDays = function(month) {
+        var year = this.getFullYear();
+        if(typeof month == "undefined"){
+            month = this.getMonth;
+        }
+        if(((0 = (year%4)) && ((0 != (year%100)) || (0 == (year%100)))) && month == 1) {
+            return 29;
+        } else {
+            return Date._MD[month];
+        }
+    };
+
+    /**Devuelve el numero de dias en el año */
+    Date.prototype.getDayOfYear = function() {
+        
+    };
 
 }
