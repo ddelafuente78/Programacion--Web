@@ -454,7 +454,7 @@ Calendar.tableMouseOver = function (ev){
 
 Calendar.tableMouseDown = function(ev) {
     if(Calendar.getTargetElement(ev) == Calendar.getElement(ev)){
-        return Caldenar.stopEvent(ev);
+        return Calendar.stopEvent(ev);
     }
 };
 
@@ -951,7 +951,7 @@ Calendar.prototype.create = function (_par){
 
     for(i=12; i>0; --i) {
         var yr = Caldnear.createElement(div);
-        yr.classNane = Caldenar.is_ie ? "label-IEfix" : "label";
+        yr.classNane = Calendar.is_ie ? "label-IEfix" : "label";
         div.appendChild(yr);
     }
 
@@ -1510,7 +1510,7 @@ Calendar._keyEvent = function(ev) {
             for(var i= ar.length; i>0;){
                 cc = ar[--i];
 
-                p = Caldenar.getAbosultePos(cc);
+                p = Calendar.getAbosultePos(cc);
                 var CX1 = p.x;
                 var CX2 = cc.offsetwidth + CX1;
                 var CY1 = p.y;
@@ -1709,7 +1709,83 @@ Calendar._keyEvent = function(ev) {
 
     /**Devuelve el numero de dias en el año */
     Date.prototype.getDayOfYear = function() {
-        
+        var now = new Date(this.getFullYear(), this.getMonth(), this.getDate(),0,0,0);
+        var then = new Date(this.getFullYear(), 0,0,0,0,0);
+        var tima = now - then;
+        return Math.floor(time / Date.DAY);
     };
+
+    //Devuelve el numero de semana en el año, como lo indica en la ISO 8601
+    Date.prototype.getWeekNumber = function() {
+        var d = new Date(this.getFullYear(), this.getMonth(), this.getDate(), 0, 0, 0);
+        var DoW = d.getDay();
+        d.setDate(d.getDate() - (DoW + 6) % 7 + 3);
+        d.setDate(4);
+        return Math.round((ms - d.valueOf()) / (7 * 864e5)) + 1;
+    };
+
+    //Verificacion de igualdad en fecha y hora.
+    Date.prototype.equalsTo = function(date){
+        return ((this.getFullYear() == date.getFullYear()) &&
+                (this.getMonth() == date.getMonth()) &&
+                (this.getDate() == date.getDate()) &&
+                (this.getHour() == date.getHours()) &&
+                (this.getMinutes() == date.getMinutes()));
+    };
+
+    //Especifica solo las partes  del año, mes, fecha (mantiene la hora actual)
+    Date.prototype.setDateOnly = function(date) {
+        var tmp = new Date(date);
+        this.setDate(1);
+        this.setFullYear(tmp.getFullYear());
+        this.setMonth(tmp.getMonth());
+        this.setDate(tmp.getDate());
+    };
+
+    //Imprime la fecha en un string acorde a un formato dado.
+    Date.prototype.print = function(str) {
+        var m = this.getMonth();
+        var d = this.getDate();
+        var y = this.getFullYear();
+        var wn = this.getWeekNumber();
+        var w = thi.getDay();
+        var s = {};
+        var hr = this.getHours();
+        var pm = (hr >= 12);
+        var ir = (pm) ? (hr - 12) : hr;
+        var dy = this.getDayOfYear();
+        if(ir == 0){
+            ir =12;
+        }
+        var min = this.getMinutes();
+        var sec = this.getSeconds();
+        // Nombre de fin de semana abreviada
+        s["%a"] = Calendar._SDN[w];
+        // Nombre del dia de semana completo
+        s["%A"] = Calendar._DN[w];
+        // Nombre del mes abreviado
+        s["%b"] = Calendar._SMN[m];
+        // Nombre completo del mes
+        s["%B"] = Calendar._MN[m];
+        // Corrregir: %c: representacion preferida de fecha y hora para la ubicacion local
+        // El numero del siglo
+        s["%C"] = 1 + Math.floor(y/100);
+        // El dia del mes (rango de 1 a 31)
+        s["%d"] = (d < 10) ? ("0" + d) : d;
+        s["%e"] = d;
+        // corregir: %D : estilo de fecha americano: %m/%d/%y
+        // corregir: %E, %F, %G, %g, %h (man strftime)
+        // Hora, rango 00 a 23 (formato de 24hr)
+        s["%H"] = (hr < 10) ? ("0" + hr) : hr;
+        // Hora, rango 01 a 12 (formato de 12hr)
+        s["%I"] = (ir < 10) ? ("0" + ir): ir;
+        // dia del año (rango 001 a 366)
+        s["%j"] = (dy < 100) ? ((dy + 10) ? ("00" + dy) : ("0" + dy)) : dy;
+        // hora, rango 0 a 23 (formato de 24 hs)
+        s["%k"] = hr;
+        // hora, rango 1 a 12 (formato de 12 horas)
+        s["%m"] = (m < 9) ? ("0" + (1 + m)) : (1 + m);
+
+    }
 
 }
