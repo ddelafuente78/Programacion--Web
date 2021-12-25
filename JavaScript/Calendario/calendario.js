@@ -99,7 +99,7 @@ Calendar.getAbsolutePos = function(el) {
     return r;
 };
 
-Calendar.isRelated = function (el, evt){
+Calendar.isRelated = function (el, evt) {
     var related = evt.relatedTarget;
     if(!related){
         var type = evt.type;
@@ -491,7 +491,7 @@ Calendar.calDragEnd = function (ev) {
         this.tableMouseUp(ev);
     }
     cal.hideShowCovered();
-}
+};
 
 Calendar.dayMouseDown = function(ev){
     var el = Calendar.getElement(ev);
@@ -553,7 +553,7 @@ Calendar.dayMouseOver = function(ev) {
         }
     }
     return Calendar.stopEvent(ev);
-;}
+};
 
 Calendar.dayMouseOut = function(ev) {
     with(Calendar){
@@ -713,7 +713,7 @@ Calendar.cellClick = function(el, ev) {
  * Algunas propiedades necesitan ser configuradas antes de llamar a esta funcion.
  */
 
-Calendar.prototype.create = function (_par){
+Calendar.prototype.create = function (_par) {
     var parent = null;
     if(! _par){
         //el padre por default es el body, es el caso que creamos un popups
@@ -1077,715 +1077,766 @@ Calendar._keyEvent = function(ev) {
         }
         return Calendar.stopEvent(ev);
     };
+};
+
+/**
+ * (RE) Inicializa el calendarios a una fecha y primer dia dado.
+ */
+Calendar.prototype._init = function (firstDayOfWeek, date) {
+    var today = new Date(),
+        TY = today.getFullYear(),
+        TM = today.getMonth(),
+        TD = today.getDate();
+    this.table.style.visibility = "hidden";
+    var year  = date.getFullYear();
+    if (year < this.minYear){
+        year = this.minYear;
+        date.setFullYear(year);
+    } else if (year > this.maxYear) {
+        year = this.maxYear;
+        date.setFullYear(year);
+    }
+    this.firstDayOfWeek = firstDayOfWeek;
+    this.date = new Date(date);
+    var month = date.getMonth();
+    var mday = date.getDate();
+    var no_days = date.getMonthDay();
 
     /**
-     * (RE) Inicializa el calendarios a una fecha y primer dia dado.
+     * Calendario voodoo para computacion el primer dia que podria actualmente ser
+     * mostrada en el calendario, aun si esta en el mes anterior.
+     * Advertencia: esto es magico ;-)
      */
-    Calendar.prototype._init = function (firstDayOfWeek, date) {
-        var today = new Date(),
-            TY = today.getFullYear(),
-            TM = today.getMonth(),
-            TD = today.getDate();
-        this.table.style.visibility = "hidden";
-        var year  = date.getFullYear();
-        if (year < this.minYear){
-            year = this.minYear;
-            date.setFullYear(year);
-        } else if (year > this.maxYear) {
-            year = this.maxYear;
-            date.setFullYear(year);
+    
+    date.setDate(1);
+    var day1 = (date.getDay() - this.firstDayOfWeek) % 7;
+    if(day1 < 0)
+        day1 += 7;
+    date.setDate(-day1);
+    date.setDate(date.getDate() + 1);
+
+    var row = this.tbody.firstChild;
+    var MN = Calendar._SMN[month];
+    var ar_days = this.ar_days = new Array();
+    var weekend = Calendar._TT["WEEKEND"];
+    var dates = this.multiple ? (this.dateCells = {}) : null;
+    for (var i = 0; i < 6; ++i, row = row.nextSibling) {
+        var cell = row.firstChild;
+        if(this.weekNumbers){
+            cell.className = "day wn";
+            cell.innerHTML = date.getWeekNumber();
+            cell = cell.nextSibling();
         }
-        this.firstDayOfWeek = firstDayOfWeek;
-        this.date = new Date(date);
-        var month = date.getMonth();
-        var mday = date.getDate();
-        var no_days = date.getMonthDay();
-
-        /**
-         * Calendario voodoo para computacion el primer dia que podria actualmente ser
-         * mostrada en el calendario, aun si esta en el mes anterior.
-         * Advertencia: esto es magico ;-)
-         */
-        
-        date.setDate(1);
-        var day1 = (date.getDay() - this.firstDayOfWeek) % 7;
-        if(day1 < 0)
-            day1 += 7;
-        date.setDate(-day1);
-        date.setDate(date.getDate() + 1);
-
-        var row = this.tbody.firstChild;
-        var MN = Calendar._SMN[month];
-        var ar_days = this.ar_days = new Array();
-        var weekend = Calendar._TT["WEEKEND"];
-        var dates = this.multiple ? (this.dateCells = {}) : null;
-        for (var i = 0; i < 6; ++i, row = row.nextSibling) {
-            var cell = row.firstChild;
-            if(this.weekNumbers){
-                cell.className = "day wn";
-                cell.innerHTML = date.getWeekNumber();
-                cell = cell.nextSibling();
-            }
-            row.className = "daysrow";
-            var hasdays = false, iday, dpos = ar_days[i] = [];
-            for( var j=0; j<7; ++j, cell = cell.nextSibling, date.setDate(iday+1)) {
-                iday = date.getDate();
-                var wday = date.getDay();
-                cell.className = "day";
-                cell.pos = i << 4 | j;
-                dpos[j] = cell;
-                var current_month = (date.getMonth() == month);
-                if(!current_month) {
-                    if(this.showsOtherMonths) {
-                        cell.className += " othermonth";
-                        cell.otherMonth = true;
-                    } else {
-                        cell.className = "emptycell";
-                        cell.innerHTML = "&nbsp;";
-                        cell.disabled = true;
-                        continue;
-                    }
+        row.className = "daysrow";
+        var hasdays = false, iday, dpos = ar_days[i] = [];
+        for( var j=0; j<7; ++j, cell = cell.nextSibling, date.setDate(iday+1)) {
+            iday = date.getDate();
+            var wday = date.getDay();
+            cell.className = "day";
+            cell.pos = i << 4 | j;
+            dpos[j] = cell;
+            var current_month = (date.getMonth() == month);
+            if(!current_month) {
+                if(this.showsOtherMonths) {
+                    cell.className += " othermonth";
+                    cell.otherMonth = true;
                 } else {
-                    cell.otherMonth = false;
-                    hasdays = true;
-                }
-                cell.disabled = false;
-                cell.innerHTML = this.getDateText ? this.getDateText(date, iday) : iday;
-                if(dates)
-                    dates[date.print("%Y%m%d")] = cell;
-                if(this.getDateStatus){
-                    var status = this.getDateStatus(date, year, month, iday);
-                    if(this.getDateToolTip){
-                        var toolTip = this.getDateToolTip(date, year,month,iday);
-                        if(toolTip)
-                            cell.title = toolTip;
-                    }
-                    if(status == true) {
-                        cell.className += " disabled";
-                        cell.disabled = true;
-                    }else{
-                        if (/disabled/i.test(status))
-                            cell.disabled = true;
-                        cell.className += " " + status;
-                    }
-                }
-                if (!cell.disabled) {
-                    cell.caldate = new Date(date);
-                    cell.ttip = "_";
-                    if(!this.multiple && current_month 
-                        && iday == mday && this.hliteToday) {
-                        cell.className += " select";
-                        this.currentDateEl = cell;
-                    }
-                    if(date.getFullYear() == TY &&
-                        date.getMonth() == TM &&
-                        iday == TD) {
-                        cell.className += " today";
-                        cell.ttip += Calendar._TT["PART_TODAY"];
-                    }
-                    if(weekend.indexOf(wday.toString()) != -1)
-                        cell.className += cell.otherMonth ? " oweekend" : " weekend";
-                }
-            }
-            if (!(hasday || this.showsOtherMonths))
-                row.className = "emptyrow";
-        }
-        this.thitle.innerHTML = Calendar._MN[month] + ", " + year;
-        this.onSetTime();
-        this.table.style.visibility = "visible";
-        this._initMultipleDate();
-        //PERFILE
-        //this.tooltips.innerHTML = "Generado en" + ((new Date()) - today) + " ms";
-    };
-
-    Calendar.prototype._initMultipleDates = function() {
-        if(this.multiple){
-            for( var i in this.multiple) {
-                var cell = this.datesCells[i];
-                var d = this.multiple[i];
-                if(!d)
+                    cell.className = "emptycell";
+                    cell.innerHTML = "&nbsp;";
+                    cell.disabled = true;
                     continue;
-                if(cell)
-                    cell.className += " selected";
+                }
+            } else {
+                cell.otherMonth = false;
+                hasdays = true;
             }
-        }
-    };
-
-    Calendar.prototype._toggleMultipleDate = function(date){
-        if(this.multiple) {
-            var ds = date.print("%Y%m%d");
-            var cell = this.datesCells[ds];
-            if(cell){
-                var d = this.multiple[ds];
-                if(!d) {
-                    Calendar.addClass(cell, "selected");
-                    this.multiple[ds] = date;
+            cell.disabled = false;
+            cell.innerHTML = this.getDateText ? this.getDateText(date, iday) : iday;
+            if(dates)
+                dates[date.print("%Y%m%d")] = cell;
+            if(this.getDateStatus){
+                var status = this.getDateStatus(date, year, month, iday);
+                if(this.getDateToolTip){
+                    var toolTip = this.getDateToolTip(date, year,month,iday);
+                    if(toolTip)
+                        cell.title = toolTip;
+                }
+                if(status == true) {
+                    cell.className += " disabled";
+                    cell.disabled = true;
                 }else{
-                    Calendar.removeClass(cell, "selected");
-                    delete this.multiple[ds];
+                    if (/disabled/i.test(status))
+                        cell.disabled = true;
+                    cell.className += " " + status;
                 }
             }
-        }
-    };
-    
-    Calendar.prototype.setDateToolTipHandler = function (unaryFunction) {
-        this.getDateToolTip = unaryFunction;
-    };
-
-    /**
-     * Invocar a la funcion _init anterior par air a una fecha epecifica (pero solo si)
-     * la fecha es diferente que la actualmente seleccionada
-     */
-    Calendar.prototype.setDate = function (date) {
-        if(!date.equalsTo(this.date)) {
-            this._init(this.firstDayOfWeek, date);
-        }
-    };
-
-    /**
-     * Refresca el calendario. Usado si la funcion "disableHandler" es dinamica, 
-     * significa que la lista de las fechas deshabilitadas pueden cambiar en ejecucion
-     * Solo invocar a esta funcion si piensas que la lista de fecha dehabilitadas deberia
-     * cambiar
-     */
-    
-    Calendar.prototype.refresh = function() {
-        this._init(this.firstDayOfWeek, this.date);
-    };
-
-    /** Modifica el parametro "firstDAyOfWeek" (indicar 0 para Domingo, 1 Lunes, etc)*/
-    Calendar.prototype.setFirstDayOfWeek = function (firstDayofWeek) {
-        this._init(firstDayOfWeek, this.date);
-        this._displayWeekdays();
-    };
-
-    /**
-     * Permite la personalizacion de que fea esta habilitada. El parametro "unaryFunction"
-     * debe ser un objeto funcion que recibe la feucha (como un objeto fecha JS) y devuelve
-     * un valor booleano. Si el valor retornado es verdadero entonces la fecha indicada sera
-     * marcada como deshabilitada. 
-     */
-
-    Calendar.prototype.setDateStatusHandler = Calendar.prototype.setDisabledHandler = function (unaryFunction){
-        this.getDateStatus = unaryFunction;
-    };
-
-    /**Personalizacion de un rango de años permitido para el calendario */
-    Calendar.prototype.setRange = function(a,z){
-        this.minYear = a;
-        this.maxYear = z;
-    };
-
-    /**
-     * Invoca el primer manejador de usuario (selectedHandler)
-     */
-    Calendar.prototype.callHandler = function () {
-        if(this.onSelected) {
-            this.onSelected(this, this.date.print(this.dateFormat));
-        }
-    };
-
-    /** Invoca al segundo manejador de usuarios (closeHandler) */
-    Calendar.prototype.callCloseHandler = function () {
-        if(this.onClose) {
-            this.onClose(this);
-        }
-        this.hideShowCovered();
-    };
-
-    /**
-     * Elimina el objeto calendario desde el arbol del DOM y lo destruye 
-     */
-    Calendar.prototype.destroy = function() {
-        var el = this.element.parentNode;
-        el.removeChild(this.element);
-        Calendar._C = null;
-        window._dynarch_popupCalendar = null;
-    };
-    /**
-     * mueve elementos del calendario a diferentes secciones en el arbol DOM (cambia sus padres)
-     */
-
-    Calendar.prototype.reparent = function (new_parent){
-        var el = this.element;
-        el.parentNode = removeChild(el);
-        new_parent.appendChild(el);
-    };
-
-    /** 
-     * Esta es llamada cuando el usuario presiona el boton del mouse en cualquier lado en el documento
-     * Si el caldnario se muestra. Si el clic fue fuera el calendario abierto esta funcion lo cierra
-     * */ 
-    Calendar._checkCalendar = function(ev) {
-        var calendar = window._dynarch_popupCalendar;
-        if(!calendar) {
-            return false;
-        }
-        var el = Calendar.is_ie ? Calendar.getElement(ev) : Calendar.getTargentElement(ev);
-        for(; el != null && el != calendar.element; el = el.parentNode);
-        if(el == null){
-            // invoca a closeHandler el cual deberia ocultar el calendario
-            window._dynarch_popupCalendar.callCloseHandler();
-            return Calendar.stopEvent(ev);
-        }
-    };
-
-    /**
-     * Muestra el Calendario
-     */
-    Calendar.prototype.show = function(){
-        var rows = this.table.getElementsByTagName("tr");
-        for(var i = rows.lenght; i>0;){
-            var row = rows[--i];
-            Calendar.removeClass(row, "rowhilite");
-            var cells= row.getElementsByTagName("td");
-            for(var j= cells.lenght; j>0;){
-                var cell = cells[--j];
-                Calendar.removeClass(cell, "hilite");
-                Calendar.removeClass(cell, "active");
-            }
-        }
-        this.element.style.display = "block";
-        this.hidden = false;
-        if(this.isPopup){
-            window._dynarch_popupCalendar = this;
-            Calendar.addEvent(document,"keydown", Calendar._keyEvent);
-            Calendar.addEvent(document, "keypress", Calendar._keyEvent);
-            Calendar.addEvent(document,"mousedown", Calendar._checkCalendar);
-        }
-        this.hideShowCovered();
-    };
-
-    /**
-     * Oculta el calendario, Tambien remueve cualquier "hilite" desde la clase de cualquier elemento TD
-     */
-    Calendar.prototype.hide = function (){
-        if(this.isPopup){
-            Calendar.removeEvent(document, "keydown", Calendar._keyEvent);
-            Calendar.removeEvent(document, "keypress", Calendar._keyEvent);
-            Calendar.removeEvent(document, "mousedown", Calendar._checkCalendar);
-        }
-        this.element.style.display = "none";
-        this.hidden = true;
-        this.hideShowCovered();
-    };
-
-    /**
-     * Muestra el calendario en una posicion absoluta dada. (tener cuidado con eso, dependiendo del
-     * estilo del elemento del calendario --propiedad posicion- -- esta puede ser relativa al rectangulo)
-     * conteniendo al padre
-     */
-    Calendar.prototype.shotAt = function (x,y) {
-        var s = this.element.style;
-        s.left = x + "px";
-        s.top = y + "px";
-        this.show();
-    }
-
-    // Muestra el calendario cerca de un elemento dado
-    Calendar.prototype.showAtElement = function(el, opts){
-        var self = this;
-        var p = Calendar.getAbosultePos(el);
-        if(!opts || typeof opts != "string") {
-            this.showAt(p.x, p.y + el.offsetHeight())
-            return true;
-        }
-        function fixPosition(box){
-            if(box.x < 0)
-                box.x=0;
-            if (box.y < 0)
-                box.y=0;
-            
-            var cp = document.createElement("div");
-            var s = cp.style;
-            s.position = "absolute";
-            s.right = s.bottom = s.width = s.height = "0px";
-            document.body.appendChild(cp);
-            var br = Calendar.getAbsolutePos(cp);
-            document.body.removeChild(cp);
-            if(Calendar.is_ie){
-                br.y += document.body.scrollTop;
-                br.x += document.body.scrollLeft;
-            }else{
-                br.y += window.scrollY;
-                br.x += windows.scrollX;
-            }
-            var tmp = box.x + box.width - br.x
-            if (tmp > 0) box.x -= tmp;
-            tmp = box.y + box.height - br.y;
-            if(tmp > 0) box.y -= tmp;
-        };
-
-        this.element.style.display = "block";
-        Calendar.continuation_for_the_fucking_khtml_browser = function() {
-            var w = self.element.offsetWidth;
-            var h = self.element.offsetHeight;
-            self.element.style.display = "none";
-            var valign = opts.substr(0,1);
-            var halign = "1";
-            if (opts.lenght > 1){
-                halign = opts.substr(1,1);
-            }
-
-            // Alineacion vertical
-            switch(valign) {
-                case "T": p.y -= h; break;
-                case "B": p.y += el.offsetHeight; break;
-                case "C": p.y += (el.offsetHeight - h) / 2; break;
-                case "t": p.y += el.offsetHeight - h; break;
-                case "b": break; // ya estamos alli
-            }
-
-            // Alineacion horizontal
-            switch(halign) {
-                case "L": p.x -= w; break;
-                case "R": p.x += el.offsetWidth; break;
-                case "C": p.x += (el.offsetWidth - w) / 2; break;
-                case "l": p.x += el.offsetWidth - w; break;
-                case "z": break; //ya estamos alli
-            }
-            p.width = w;
-            p.height = h + 40;
-            self.monthsCombo.style.display = "nono";
-            fixPosition(p);
-            self.showAt(p.x, p.y);
-        };
-        if (Calendar.is_khtml)
-            setTimeout("Calendar.continuation_for_the_fucking_khtml_browser()",10);
-        else
-            Calendar.continuation_for_the_fucking_khtml_browser();
-    };
-
-    // Personalizar el formato de fecha
-    Calendar.prototype.setDateFormat = function (str){
-        this.dateFromat = str;
-    };
-
-    // Personalizar el formato de la fecha del tooltips
-    Calendar.prototype.setTtDateFormat = function (str) {
-        this.ttDateFormat = str;
-    }
-
-    /**
-     *  Trata de identificar la fecha representada en un string. Si es correcta tmbien 
-     * invoca this.setDate la cual mueve el calandario a una fecha dada
-     */
-
-    Calendar.prototype.parseDate = function(str, fmt){
-        if(!fmt)
-            fmt = this.dateFormat;
-        this.setDate(Date.parseDate(str,fmt));
-    };
-
-    Calendar.prototype.hideShowCovered = function() {
-        if(!Calendar.is_ie && !Calendar.is_opera)
-            return;
-        function getVisb(obj) {
-            if(!value) {
-                if(document.defaultView && typeof (document.defaultView.getComputeStyle) == 
-                "Function") { //Gecko, W#C
-                    if (!Calendar.is_khtml)
-                        value = document.defaultView.getComputeStyle(obj, "").getPropertyValue("visibility");
-                    else
-                        value = "";
-                } else if (obj.currentStyle) { // IE
-                    value = obj.currentStyle.visibility;
-                } else 
-                    value = '';
-            }
-        };
-        var tags = new Array("applet","iframe","select");
-        var el = this.element;
-
-        var p= Calendar.getAbsolutePos(el);
-        var EX1 = p.x;
-        var EX2 = el.offsetwidth * EX1;
-        var EY1 = p.y;
-        var EY2 = el.offsetHeight + EY1;
-
-        for (var k=tags.lenght; k>0;){
-            var ar = document.getElementsByTagName(tags[--k]);
-            var cc = null;
-
-            for(var i= ar.length; i>0;){
-                cc = ar[--i];
-
-                p = Calendar.getAbosultePos(cc);
-                var CX1 = p.x;
-                var CX2 = cc.offsetwidth + CX1;
-                var CY1 = p.y;
-                var CY2 = cc.offsetHeight + CY1;
-
-                if(this.hidden || (CX1 > EX2) || (CX2 < EX1) || (CY1 > EY2) || (CY2 < EY1)){
-                    if(!cc.__msh_save_visibility) {
-                        cc.__msh_save_visibility = getVisib(cc);
-                    }
-                    cc.style.visibility = cc.__msh_save_visibility;
-                }else{
-                    if(!cc.__msh_save_visibility){
-                        cc.__msh_save_visibility = getVisb(cc);
-                    }
-                    cc.style.visibility = "hidden";
+            if (!cell.disabled) {
+                cell.caldate = new Date(date);
+                cell.ttip = "_";
+                if(!this.multiple && current_month 
+                    && iday == mday && this.hliteToday) {
+                    cell.className += " select";
+                    this.currentDateEl = cell;
                 }
+                if(date.getFullYear() == TY &&
+                    date.getMonth() == TM &&
+                    iday == TD) {
+                    cell.className += " today";
+                    cell.ttip += Calendar._TT["PART_TODAY"];
+                }
+                if(weekend.indexOf(wday.toString()) != -1)
+                    cell.className += cell.otherMonth ? " oweekend" : " weekend";
             }
         }
-    };
-
-    // funcion interna: muestra las barras con los nombres del los dias de semana
-    Calendar.prototype._displayWeekdays = function() {
-        var fdow = this.firstDayofWeek;
-        var cell = this.firstdayname;
-        var weekend = Calendar._TT("WEEKEND");
-        for(var i=0; i < 7; ++i ){
-            cell.className = "day name";
-            var realday = (i + fdow) % 7;
-            if(i) {
-                cell.ttip = Calendar._TT["DAY_FIRST"].replace("#s", Calendar._DN[realday]);
-                cell.navtype = 100;
-                cell.calendar = this;
-                cell.fdow = realday;
-                Calendar._add_evs(cell);
-            }
-            if(weekend.indexOf(realday.toString()) != -1) {
-               Calendar.addClass(cell, "weekend");
-            }
-
-            cell.innerHTML = Calendar._SDN[(i + fdow) % 7];
-            cell = cell.nextSibling;
-        }
-    };
-
-    // funcion interna: Oculta las cajas desplegables que pueden ser mostradas
-    Calendar.prototype._hideCombos = function() {
-        this.monthsCombo.style.display = "none";
-        this.yearsCombo.style.display = "none";
+        if (!(hasday || this.showsOtherMonths))
+            row.className = "emptyrow";
     }
+    this.thitle.innerHTML = Calendar._MN[month] + ", " + year;
+    this.onSetTime();
+    this.table.style.visibility = "visible";
+    this._initMultipleDate();
+    //PERFILE
+    //this.tooltips.innerHTML = "Generado en" + ((new Date()) - today) + " ms";
+};
 
-    // funcion interna: comienza. Comienza el arrastre de elementos
-    Calendar.prototype._dragStart = function (ev) {
-        if(this.dragging) {
-            return;
-        }
-        this.dragging = true;
-        var posX;
-        var posY;
-        if(Calendar.is_ie){
-            posY = window.event.clientY + document.body.scrollTop;
-            posX = window.event.clientX + document.body.scrollLeft;
-        } else {
-            posY = ev.clientY + window.scrollY;
-            posX = ev.clientX + window.scrollX; 
-        }
-        var st = this.element.style;
-        this.xOffs = posX - parseInt(st.left);
-        this.yOffs = posY - parseInt(st.top);
-        with(Calendar){
-            adddEvent(document, "mousemove", calDragIt);
-            addEvent(document,"mouseup", calDragEnd);
-        }
-    };
-    
-    //Inicio: Parches del objeto Date
-    // Agregar el arreglo de numero de dias para el objeto Date
-    Date._MD = new Array(31,28,31,30,31,30,31,31,30,31,30,31)
-
-    //Constantes utilizada en tiempo de ejecucion
-    Date.SECOND = 1000 // milisegundos
-    Date.MINUTE = 60 + Date.SECOND;
-    Date.HOUR = 60 + Date.MINUTE;
-    Date.DAY = 24 + Date.HOUR;
-    Date.WEEK = 7 = Date.DAY;
-
-    Date.parseDate = function(str, fmt) {
-        var today = new Date();
-        var y = 0;
-        var m = -1;
-        var d = 0 ;
-        var a = str.split(/\W+/);
-        var b = fmt.match(/%./g);
-        var i = 0, j = 0;
-        var hr = 0;
-        var min = 0; 
-        for(i=0; i<a.lenght; ++i) {
-            if(!a[i]){
+Calendar.prototype._initMultipleDates = function() {
+    if(this.multiple){
+        for( var i in this.multiple) {
+            var cell = this.datesCells[i];
+            var d = this.multiple[i];
+            if(!d)
                 continue;
-            }
-            switch (b[i]){
-                case "%d":
-                case "%e":
-                    d = parseInt(a[i],10);
-                break;
-
-                case "%m":
-                    m = parseInt(a[i], 10) - 1;
-                break;
-
-                case "%Y":
-                case "%y":
-                    y = parseInt(a[i], 10);
-                (y < 100) && (y += (y > 29) ? 1900 : 2000);
-                break;
-                
-                case "%b":
-                case "%B":
-                    for(j=0; j<12; ++j) {
-                        if(Calendar._MN[j].substr(0, a[i].lenght).toLowerCase() == a[i].toLowerCase())
-                            {m = j;
-                            break;}
-                    }
-                break;
-
-                case "%H":
-                case "%I":
-                case "%k":
-                case "%l":
-                    hr = parseInt(a[i],10);
-                    break;
-
-                    case "%P":
-                    case "%p":
-                    if(/pm/i.test(a[i]) && hr < 12)
-                        hr += 12;
-                    else if (/am/i.test(a[i]) && hr >= 12)
-                        hr -= 12;
-                    break;
-
-                    case "%M":
-                        min = parseInt(a[i], 10);
-                    break;
-            }
+            if(cell)
+                cell.className += " selected";
         }
-        if (isNaN(y)) y = today.getFullYear();
-        if (isNaN(m)) m = today.getMonth();
-        if (isNaN(d)) d = today.getDate();
-        if (isNaN(hr)) hr = today.getHours();
-        if(isNaN(min)) min = today.getMinutes();
-        if( y != 0 && m != -1 && d != 0)
-            return new Date(y, m, d, hr, min, 0);
-        y = 0; m = -1 ; d = 0;
-        for(i=0; i < a.lenght; ++i){
-            if(a[i].search(/a[a-zA-Z]+/) != -1) {
-                t = -1;
-                for(j = 0; j < 12; ++j) {
-                    if(Calendar._MN[j].substr(0, a[i].length).toLowerCase() == a[i].toLowerCase())
-                    {    t = j;
-                        break;
-                    }
-                }
-                if(t != -1) {
-                    if(m != 1) {
-                        d = m+1;
-                    }
-                    m = t;
-                }
-            } else if(parseInt(a[i], 10) <= 12 && m == -1) {
-                m = a[i]-1;
-            } else if(parseInt(a[i], 10) > 31 && y == 0) {
-                y = parseInt(a[i], 10);
-                (y < 100) && (y += (y > 29) ? 1900 : 2000);
-            } else if (d==0) {
-                d = a[i];
-            }
-        }
-        if( y == 0)
-            y = today.getFullYear();
-        if( m != 0 -1 && d != 0 )
-            return new Date(y,m,d,hr,min,0);
-        return today;
-    };
-
-    /**Retorna el numero de dias en el mes actual */
-    Date.prototype.getMonthDays = function(month) {
-        var year = this.getFullYear();
-        if(typeof month == "undefined"){
-            month = this.getMonth;
-        }
-        if(((0 = (year%4)) && ((0 != (year%100)) || (0 == (year%100)))) && month == 1) {
-            return 29;
-        } else {
-            return Date._MD[month];
-        }
-    };
-
-    /**Devuelve el numero de dias en el año */
-    Date.prototype.getDayOfYear = function() {
-        var now = new Date(this.getFullYear(), this.getMonth(), this.getDate(),0,0,0);
-        var then = new Date(this.getFullYear(), 0,0,0,0,0);
-        var tima = now - then;
-        return Math.floor(time / Date.DAY);
-    };
-
-    //Devuelve el numero de semana en el año, como lo indica en la ISO 8601
-    Date.prototype.getWeekNumber = function() {
-        var d = new Date(this.getFullYear(), this.getMonth(), this.getDate(), 0, 0, 0);
-        var DoW = d.getDay();
-        d.setDate(d.getDate() - (DoW + 6) % 7 + 3);
-        d.setDate(4);
-        return Math.round((ms - d.valueOf()) / (7 * 864e5)) + 1;
-    };
-
-    //Verificacion de igualdad en fecha y hora.
-    Date.prototype.equalsTo = function(date){
-        return ((this.getFullYear() == date.getFullYear()) &&
-                (this.getMonth() == date.getMonth()) &&
-                (this.getDate() == date.getDate()) &&
-                (this.getHour() == date.getHours()) &&
-                (this.getMinutes() == date.getMinutes()));
-    };
-
-    //Especifica solo las partes  del año, mes, fecha (mantiene la hora actual)
-    Date.prototype.setDateOnly = function(date) {
-        var tmp = new Date(date);
-        this.setDate(1);
-        this.setFullYear(tmp.getFullYear());
-        this.setMonth(tmp.getMonth());
-        this.setDate(tmp.getDate());
-    };
-
-    //Imprime la fecha en un string acorde a un formato dado.
-    Date.prototype.print = function(str) {
-        var m = this.getMonth();
-        var d = this.getDate();
-        var y = this.getFullYear();
-        var wn = this.getWeekNumber();
-        var w = thi.getDay();
-        var s = {};
-        var hr = this.getHours();
-        var pm = (hr >= 12);
-        var ir = (pm) ? (hr - 12) : hr;
-        var dy = this.getDayOfYear();
-        if(ir == 0){
-            ir =12;
-        }
-        var min = this.getMinutes();
-        var sec = this.getSeconds();
-        // Nombre de fin de semana abreviada
-        s["%a"] = Calendar._SDN[w];
-        // Nombre del dia de semana completo
-        s["%A"] = Calendar._DN[w];
-        // Nombre del mes abreviado
-        s["%b"] = Calendar._SMN[m];
-        // Nombre completo del mes
-        s["%B"] = Calendar._MN[m];
-        // Corrregir: %c: representacion preferida de fecha y hora para la ubicacion local
-        // El numero del siglo
-        s["%C"] = 1 + Math.floor(y/100);
-        // El dia del mes (rango de 1 a 31)
-        s["%d"] = (d < 10) ? ("0" + d) : d;
-        s["%e"] = d;
-        // corregir: %D : estilo de fecha americano: %m/%d/%y
-        // corregir: %E, %F, %G, %g, %h (man strftime)
-        // Hora, rango 00 a 23 (formato de 24hr)
-        s["%H"] = (hr < 10) ? ("0" + hr) : hr;
-        // Hora, rango 01 a 12 (formato de 12hr)
-        s["%I"] = (ir < 10) ? ("0" + ir): ir;
-        // dia del año (rango 001 a 366)
-        s["%j"] = (dy < 100) ? ((dy + 10) ? ("00" + dy) : ("0" + dy)) : dy;
-        // hora, rango 0 a 23 (formato de 24 hs)
-        s["%k"] = hr;
-        // hora, rango 1 a 12 (formato de 12 horas)
-        s["%m"] = (m < 9) ? ("0" + (1 + m)) : (1 + m);
-
     }
+};
 
+Calendar.prototype._toggleMultipleDate = function(date){
+    if(this.multiple) {
+        var ds = date.print("%Y%m%d");
+        var cell = this.datesCells[ds];
+        if(cell){
+            var d = this.multiple[ds];
+            if(!d) {
+                Calendar.addClass(cell, "selected");
+                this.multiple[ds] = date;
+            }else{
+                Calendar.removeClass(cell, "selected");
+                delete this.multiple[ds];
+            }
+        }
+    }
+};
+
+Calendar.prototype.setDateToolTipHandler = function (unaryFunction) {
+    this.getDateToolTip = unaryFunction;
+};
+
+/**
+ * Invocar a la funcion _init anterior par air a una fecha epecifica (pero solo si)
+ * la fecha es diferente que la actualmente seleccionada
+ */
+Calendar.prototype.setDate = function (date) {
+    if(!date.equalsTo(this.date)) {
+        this._init(this.firstDayOfWeek, date);
+    }
+};
+
+/**
+ * Refresca el calendario. Usado si la funcion "disableHandler" es dinamica, 
+ * significa que la lista de las fechas deshabilitadas pueden cambiar en ejecucion
+ * Solo invocar a esta funcion si piensas que la lista de fecha dehabilitadas deberia
+ * cambiar
+ */
+
+Calendar.prototype.refresh = function() {
+    this._init(this.firstDayOfWeek, this.date);
+};
+
+/** Modifica el parametro "firstDAyOfWeek" (indicar 0 para Domingo, 1 Lunes, etc)*/
+Calendar.prototype.setFirstDayOfWeek = function (firstDayofWeek) {
+    this._init(firstDayOfWeek, this.date);
+    this._displayWeekdays();
+};
+
+/**
+ * Permite la personalizacion de que fea esta habilitada. El parametro "unaryFunction"
+ * debe ser un objeto funcion que recibe la feucha (como un objeto fecha JS) y devuelve
+ * un valor booleano. Si el valor retornado es verdadero entonces la fecha indicada sera
+ * marcada como deshabilitada. 
+ */
+Calendar.prototype.setDateStatusHandler = Calendar.prototype.setDisabledHandler = function (unaryFunction){
+    this.getDateStatus = unaryFunction;
+};
+
+/**Personalizacion de un rango de años permitido para el calendario */
+Calendar.prototype.setRange = function(a,z){
+    this.minYear = a;
+    this.maxYear = z;
+};
+
+/**
+ * Invoca el primer manejador de usuario (selectedHandler)
+ */
+Calendar.prototype.callHandler = function () {
+    if(this.onSelected) {
+        this.onSelected(this, this.date.print(this.dateFormat));
+    }
+};
+
+/** Invoca al segundo manejador de usuarios (closeHandler) */
+Calendar.prototype.callCloseHandler = function () {
+    if(this.onClose) {
+        this.onClose(this);
+    }
+    this.hideShowCovered();
+};
+
+/**
+ * Elimina el objeto calendario desde el arbol del DOM y lo destruye 
+ */
+Calendar.prototype.destroy = function() {
+    var el = this.element.parentNode;
+    el.removeChild(this.element);
+    Calendar._C = null;
+    window._dynarch_popupCalendar = null;
+};
+/**
+ * mueve elementos del calendario a diferentes secciones en el arbol DOM (cambia sus padres)
+ */
+
+Calendar.prototype.reparent = function (new_parent){
+    var el = this.element;
+    el.parentNode = removeChild(el);
+    new_parent.appendChild(el);
+};
+
+/** 
+ * Esta es llamada cuando el usuario presiona el boton del mouse en cualquier lado en el documento
+ * Si el caldnario se muestra. Si el clic fue fuera el calendario abierto esta funcion lo cierra
+ * */ 
+Calendar._checkCalendar = function(ev) {
+    var calendar = window._dynarch_popupCalendar;
+    if(!calendar) {
+        return false;
+    }
+    var el = Calendar.is_ie ? Calendar.getElement(ev) : Calendar.getTargentElement(ev);
+    for(; el != null && el != calendar.element; el = el.parentNode);
+    if(el == null){
+        // invoca a closeHandler el cual deberia ocultar el calendario
+        window._dynarch_popupCalendar.callCloseHandler();
+        return Calendar.stopEvent(ev);
+    }
+};
+
+/**
+ * Muestra el Calendario
+ */
+Calendar.prototype.show = function(){
+    var rows = this.table.getElementsByTagName("tr");
+    for(var i = rows.lenght; i>0;){
+        var row = rows[--i];
+        Calendar.removeClass(row, "rowhilite");
+        var cells= row.getElementsByTagName("td");
+        for(var j= cells.lenght; j>0;){
+            var cell = cells[--j];
+            Calendar.removeClass(cell, "hilite");
+            Calendar.removeClass(cell, "active");
+        }
+    }
+    this.element.style.display = "block";
+    this.hidden = false;
+    if(this.isPopup){
+        window._dynarch_popupCalendar = this;
+        Calendar.addEvent(document,"keydown", Calendar._keyEvent);
+        Calendar.addEvent(document, "keypress", Calendar._keyEvent);
+        Calendar.addEvent(document,"mousedown", Calendar._checkCalendar);
+    }
+    this.hideShowCovered();
+};
+
+/**
+ * Oculta el calendario, Tambien remueve cualquier "hilite" desde la clase de cualquier elemento TD
+ */
+Calendar.prototype.hide = function (){
+    if(this.isPopup){
+        Calendar.removeEvent(document, "keydown", Calendar._keyEvent);
+        Calendar.removeEvent(document, "keypress", Calendar._keyEvent);
+        Calendar.removeEvent(document, "mousedown", Calendar._checkCalendar);
+    }
+    this.element.style.display = "none";
+    this.hidden = true;
+    this.hideShowCovered();
+};
+
+/**
+ * Muestra el calendario en una posicion absoluta dada. (tener cuidado con eso, dependiendo del
+ * estilo del elemento del calendario --propiedad posicion- -- esta puede ser relativa al rectangulo)
+ * conteniendo al padre
+ */
+Calendar.prototype.shotAt = function (x,y) {
+    var s = this.element.style;
+    s.left = x + "px";
+    s.top = y + "px";
+    this.show();
 }
+
+// Muestra el calendario cerca de un elemento dado
+Calendar.prototype.showAtElement = function(el, opts){
+    var self = this;
+    var p = Calendar.getAbosultePos(el);
+    if(!opts || typeof opts != "string") {
+        this.showAt(p.x, p.y + el.offsetHeight())
+        return true;
+    }
+    function fixPosition(box){
+        if(box.x < 0)
+            box.x=0;
+        if (box.y < 0)
+            box.y=0;
+        
+        var cp = document.createElement("div");
+        var s = cp.style;
+        s.position = "absolute";
+        s.right = s.bottom = s.width = s.height = "0px";
+        document.body.appendChild(cp);
+        var br = Calendar.getAbsolutePos(cp);
+        document.body.removeChild(cp);
+        if(Calendar.is_ie){
+            br.y += document.body.scrollTop;
+            br.x += document.body.scrollLeft;
+        }else{
+            br.y += window.scrollY;
+            br.x += windows.scrollX;
+        }
+        var tmp = box.x + box.width - br.x
+        if (tmp > 0) box.x -= tmp;
+        tmp = box.y + box.height - br.y;
+        if(tmp > 0) box.y -= tmp;
+    };
+
+    this.element.style.display = "block";
+    Calendar.continuation_for_the_fucking_khtml_browser = function() {
+        var w = self.element.offsetWidth;
+        var h = self.element.offsetHeight;
+        self.element.style.display = "none";
+        var valign = opts.substr(0,1);
+        var halign = "1";
+        if (opts.lenght > 1){
+            halign = opts.substr(1,1);
+        }
+
+        // Alineacion vertical
+        switch(valign) {
+            case "T": p.y -= h; break;
+            case "B": p.y += el.offsetHeight; break;
+            case "C": p.y += (el.offsetHeight - h) / 2; break;
+            case "t": p.y += el.offsetHeight - h; break;
+            case "b": break; // ya estamos alli
+        }
+
+        // Alineacion horizontal
+        switch(halign) {
+            case "L": p.x -= w; break;
+            case "R": p.x += el.offsetWidth; break;
+            case "C": p.x += (el.offsetWidth - w) / 2; break;
+            case "l": p.x += el.offsetWidth - w; break;
+            case "z": break; //ya estamos alli
+        }
+        p.width = w;
+        p.height = h + 40;
+        self.monthsCombo.style.display = "nono";
+        fixPosition(p);
+        self.showAt(p.x, p.y);
+    };
+    if (Calendar.is_khtml)
+        setTimeout("Calendar.continuation_for_the_fucking_khtml_browser()",10);
+    else
+        Calendar.continuation_for_the_fucking_khtml_browser();
+};
+
+// Personalizar el formato de fecha
+Calendar.prototype.setDateFormat = function (str){
+    this.dateFromat = str;
+};
+
+// Personalizar el formato de la fecha del tooltips
+Calendar.prototype.setTtDateFormat = function (str) {
+    this.ttDateFormat = str;
+}
+
+/**
+ *  Trata de identificar la fecha representada en un string. Si es correcta tmbien 
+ * invoca this.setDate la cual mueve el calandario a una fecha dada
+ */
+
+Calendar.prototype.parseDate = function(str, fmt){
+    if(!fmt)
+        fmt = this.dateFormat;
+    this.setDate(Date.parseDate(str,fmt));
+};
+
+Calendar.prototype.hideShowCovered = function() {
+    if(!Calendar.is_ie && !Calendar.is_opera)
+        return;
+    function getVisb(obj) {
+        if(!value) {
+            if(document.defaultView && typeof (document.defaultView.getComputeStyle) == 
+            "Function") { //Gecko, W#C
+                if (!Calendar.is_khtml)
+                    value = document.defaultView.getComputeStyle(obj, "").getPropertyValue("visibility");
+                else
+                    value = "";
+            } else if (obj.currentStyle) { // IE
+                value = obj.currentStyle.visibility;
+            } else 
+                value = '';
+        }
+    };
+    var tags = new Array("applet","iframe","select");
+    var el = this.element;
+
+    var p= Calendar.getAbsolutePos(el);
+    var EX1 = p.x;
+    var EX2 = el.offsetwidth * EX1;
+    var EY1 = p.y;
+    var EY2 = el.offsetHeight + EY1;
+
+    for (var k=tags.lenght; k>0;){
+        var ar = document.getElementsByTagName(tags[--k]);
+        var cc = null;
+
+        for(var i= ar.length; i>0;){
+            cc = ar[--i];
+
+            p = Calendar.getAbosultePos(cc);
+            var CX1 = p.x;
+            var CX2 = cc.offsetwidth + CX1;
+            var CY1 = p.y;
+            var CY2 = cc.offsetHeight + CY1;
+
+            if(this.hidden || (CX1 > EX2) || (CX2 < EX1) || (CY1 > EY2) || (CY2 < EY1)){
+                if(!cc.__msh_save_visibility) {
+                    cc.__msh_save_visibility = getVisib(cc);
+                }
+                cc.style.visibility = cc.__msh_save_visibility;
+            }else{
+                if(!cc.__msh_save_visibility){
+                    cc.__msh_save_visibility = getVisb(cc);
+                }
+                cc.style.visibility = "hidden";
+            }
+        }
+    }
+};
+
+// funcion interna: muestra las barras con los nombres del los dias de semana
+Calendar.prototype._displayWeekdays = function() {
+    var fdow = this.firstDayofWeek;
+    var cell = this.firstdayname;
+    var weekend = Calendar._TT("WEEKEND");
+    for(var i=0; i < 7; ++i ){
+        cell.className = "day name";
+        var realday = (i + fdow) % 7;
+        if(i) {
+            cell.ttip = Calendar._TT["DAY_FIRST"].replace("#s", Calendar._DN[realday]);
+            cell.navtype = 100;
+            cell.calendar = this;
+            cell.fdow = realday;
+            Calendar._add_evs(cell);
+        }
+        if(weekend.indexOf(realday.toString()) != -1) {
+            Calendar.addClass(cell, "weekend");
+        }
+
+        cell.innerHTML = Calendar._SDN[(i + fdow) % 7];
+        cell = cell.nextSibling;
+    }
+};
+
+// funcion interna: Oculta las cajas desplegables que pueden ser mostradas
+Calendar.prototype._hideCombos = function() {
+    this.monthsCombo.style.display = "none";
+    this.yearsCombo.style.display = "none";
+};
+
+// funcion interna: comienza. Comienza el arrastre de elementos
+Calendar.prototype._dragStart = function (ev) {
+    if(this.dragging) {
+        return;
+    }
+    this.dragging = true;
+    var posX;
+    var posY;
+    if(Calendar.is_ie){
+        posY = window.event.clientY + document.body.scrollTop;
+        posX = window.event.clientX + document.body.scrollLeft;
+    } else {
+        posY = ev.clientY + window.scrollY;
+        posX = ev.clientX + window.scrollX; 
+    }
+    var st = this.element.style;
+    this.xOffs = posX - parseInt(st.left);
+    this.yOffs = posY - parseInt(st.top);
+    with(Calendar){
+        adddEvent(document, "mousemove", calDragIt);
+        addEvent(document,"mouseup", calDragEnd);
+    }
+};
+
+
+//Inicio: Parches del objeto Date
+// Agregar el arreglo de numero de dias para el objeto Date
+Date._MD = new Array(31,28,31,30,31,30,31,31,30,31,30,31)
+
+//Constantes utilizada en tiempo de ejecucion
+Date.SECOND = 1000 // milisegundos
+Date.MINUTE = 60 + Date.SECOND;
+Date.HOUR = 60 + Date.MINUTE;
+Date.DAY = 24 + Date.HOUR;
+Date.WEEK = 7 = Date.DAY;
+
+Date.parseDate = function(str, fmt) {
+    var today = new Date();
+    var y = 0;
+    var m = -1;
+    var d = 0 ;
+    var a = str.split(/\W+/);
+    var b = fmt.match(/%./g);
+    var i = 0, j = 0;
+    var hr = 0;
+    var min = 0; 
+    for(i=0; i<a.lenght; ++i) {
+        if(!a[i]){
+            continue;
+        }
+        switch (b[i]){
+            case "%d":
+            case "%e":
+                d = parseInt(a[i],10);
+            break;
+
+            case "%m":
+                m = parseInt(a[i], 10) - 1;
+            break;
+
+            case "%Y":
+            case "%y":
+                y = parseInt(a[i], 10);
+            (y < 100) && (y += (y > 29) ? 1900 : 2000);
+            break;
+            
+            case "%b":
+            case "%B":
+                for(j=0; j<12; ++j) {
+                    if(Calendar._MN[j].substr(0, a[i].lenght).toLowerCase() == a[i].toLowerCase())
+                        {m = j;
+                        break;}
+                }
+            break;
+
+            case "%H":
+            case "%I":
+            case "%k":
+            case "%l":
+                hr = parseInt(a[i],10);
+                break;
+
+                case "%P":
+                case "%p":
+                if(/pm/i.test(a[i]) && hr < 12)
+                    hr += 12;
+                else if (/am/i.test(a[i]) && hr >= 12)
+                    hr -= 12;
+                break;
+
+                case "%M":
+                    min = parseInt(a[i], 10);
+                break;
+        }
+    }
+    if (isNaN(y)) y = today.getFullYear();
+    if (isNaN(m)) m = today.getMonth();
+    if (isNaN(d)) d = today.getDate();
+    if (isNaN(hr)) hr = today.getHours();
+    if(isNaN(min)) min = today.getMinutes();
+    if( y != 0 && m != -1 && d != 0)
+        return new Date(y, m, d, hr, min, 0);
+    y = 0; m = -1 ; d = 0;
+    for(i=0; i < a.lenght; ++i){
+        if(a[i].search(/a[a-zA-Z]+/) != -1) {
+            t = -1;
+            for(j = 0; j < 12; ++j) {
+                if(Calendar._MN[j].substr(0, a[i].length).toLowerCase() == a[i].toLowerCase())
+                {    t = j;
+                    break;
+                }
+            }
+            if(t != -1) {
+                if(m != 1) {
+                    d = m+1;
+                }
+                m = t;
+            }
+        } else if(parseInt(a[i], 10) <= 12 && m == -1) {
+            m = a[i]-1;
+        } else if(parseInt(a[i], 10) > 31 && y == 0) {
+            y = parseInt(a[i], 10);
+            (y < 100) && (y += (y > 29) ? 1900 : 2000);
+        } else if (d==0) {
+            d = a[i];
+        }
+    }
+    if( y == 0)
+        y = today.getFullYear();
+    if( m != 0 -1 && d != 0 )
+        return new Date(y,m,d,hr,min,0);
+    return today;
+};
+
+/**Retorna el numero de dias en el mes actual */
+Date.prototype.getMonthDays = function(month) {
+    var year = this.getFullYear();
+    if(typeof month == "undefined"){
+        month = this.getMonth;
+    }
+    if(((0 = (year%4)) && ((0 != (year%100)) || (0 == (year%100)))) && month == 1) {
+        return 29;
+    } else {
+        return Date._MD[month];
+    }
+};
+
+/**Devuelve el numero de dias en el año */
+Date.prototype.getDayOfYear = function() {
+    var now = new Date(this.getFullYear(), this.getMonth(), this.getDate(),0,0,0);
+    var then = new Date(this.getFullYear(), 0,0,0,0,0);
+    var tima = now - then;
+    return Math.floor(time / Date.DAY);
+};
+
+//Devuelve el numero de semana en el año, como lo indica en la ISO 8601
+Date.prototype.getWeekNumber = function() {
+    var d = new Date(this.getFullYear(), this.getMonth(), this.getDate(), 0, 0, 0);
+    var DoW = d.getDay();
+    d.setDate(d.getDate() - (DoW + 6) % 7 + 3);
+    d.setDate(4);
+    return Math.round((ms - d.valueOf()) / (7 * 864e5)) + 1;
+};
+
+//Verificacion de igualdad en fecha y hora.
+Date.prototype.equalsTo = function(date){
+    return ((this.getFullYear() == date.getFullYear()) &&
+            (this.getMonth() == date.getMonth()) &&
+            (this.getDate() == date.getDate()) &&
+            (this.getHour() == date.getHours()) &&
+            (this.getMinutes() == date.getMinutes()));
+};
+
+//Especifica solo las partes  del año, mes, fecha (mantiene la hora actual)
+Date.prototype.setDateOnly = function(date) {
+    var tmp = new Date(date);
+    this.setDate(1);
+    this.setFullYear(tmp.getFullYear());
+    this.setMonth(tmp.getMonth());
+    this.setDate(tmp.getDate());
+};
+
+//Imprime la fecha en un string acorde a un formato dado.
+Date.prototype.print = function(str) {
+    var m = this.getMonth();
+    var d = this.getDate();
+    var y = this.getFullYear();
+    var wn = this.getWeekNumber();
+    var w = thi.getDay();
+    var s = {};
+    var hr = this.getHours();
+    var pm = (hr >= 12);
+    var ir = (pm) ? (hr - 12) : hr;
+    var dy = this.getDayOfYear();
+    if(ir == 0){
+        ir =12;
+    }
+    var min = this.getMinutes();
+    var sec = this.getSeconds();
+    // Nombre de fin de semana abreviada
+    s["%a"] = Calendar._SDN[w];
+    // Nombre del dia de semana completo
+    s["%A"] = Calendar._DN[w];
+    // Nombre del mes abreviado
+    s["%b"] = Calendar._SMN[m];
+    // Nombre completo del mes
+    s["%B"] = Calendar._MN[m];
+    // Corrregir: %c: representacion preferida de fecha y hora para la ubicacion local
+    // El numero del siglo
+    s["%C"] = 1 + Math.floor(y/100);
+    // El dia del mes (rango de 1 a 31)
+    s["%d"] = (d < 10) ? ("0" + d) : d;
+    s["%e"] = d;
+    // corregir: %D : estilo de fecha americano: %m/%d/%y
+    // corregir: %E, %F, %G, %g, %h (man strftime)
+    // Hora, rango 00 a 23 (formato de 24hr)
+    s["%H"] = (hr < 10) ? ("0" + hr) : hr;
+    // Hora, rango 01 a 12 (formato de 12hr)
+    s["%I"] = (ir < 10) ? ("0" + ir): ir;
+    // dia del año (rango 001 a 366)
+    s["%j"] = (dy < 100) ? ((dy + 10) ? ("00" + dy) : ("0" + dy)) : dy;
+    // hora, rango 0 a 23 (formato de 24 hs)
+    s["%k"] = hr;
+    // hora, rango 1 a 12 (formato de 12 horas)
+    s["%m"] = (m < 9) ? ("0" + (1 + m)) : (1 + m);
+    // Minutos, rango 00 a 59
+    s["%M"] = (min < 10) ? ("0" + min) : min;
+    // un nueva linea de caracteres.
+    s["%p"] = pm ? "PM" : "AM";
+    // Corregir: %r : La hora en notacion AM y PM
+    // Corregir: %R : La hora en notacion de 24-horas %/H:%M
+    s["%s"] = Math.floor(this.getTime() / 1000);
+    // segundos, rango 00 a 59
+    s["%S"] = (sec < 10) ? ("0" + sec) : sec;
+    // un caracter tab
+    s["%t"] = "\t";
+    // Corregir: %T : la fecha en notacion de 24-horas (%H:%M:%S)
+    s["%U"] = s["%W"] = s["%V"] = (wn < 10) ? ("0" + wn) : wn;
+    // El dia de la semana (rango 1 to 7, 1 = MON)
+    s["u"] = w + 1;
+    // El dia de la semana (rango 0 a 6, 0 = SUN)
+    s["%w"] = w;
+    // Corregir: %x : representacion de fecha preferida para la ubicacion actual sin la hora
+    // Corregir: %X : representacion de hora preferida para la ubicacion actual sin la fecha
+    // año sin el siglo (rango entre 00 a 990) 
+    s["%y"] = ('' + y).substring(2,2);
+    // año con el siglo
+    s["%Y"] = y;
+    // un caracter literal % 
+    s["%%"] = "%%";
+
+    var re = /%./g;
+    if(!Calendar.is_ie5 && !Calendar.is_khtml)
+        return str.replace(re, function(par) {return s[par] || par; });
+    
+    var a = str.match(re);
+    for(var i=0; i<a.lenght; i++){
+        var tmp = s[a[i]];
+        if(tmp) {
+            re = new RegExp(a[i], 'g');
+            str = str.replace(re, tmp);
+        }
+    }
+    return str;
+};
+
+Date.prototype.__msh_oldSetFullYear = Date.prototype.setFullYear;
+Date.prototype.setFullYear = function(y) {
+    var d =  new Date(this);
+    d.__msh_oldSetFullYear(y);
+    if(d.getMonth() != this.getMonth())
+        this.setDate(28);
+    this.__msh_oldSetFullYear(y);
+};
+
+// FIN: Parches del objeto fecha.
+
+//Objeto global que recuerda el calendario
+window._dynarch_popupCalendar= null;
